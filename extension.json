@@ -1,0 +1,24 @@
+{
+	"name": "SMWShow",
+	"author": "Julian Hocker",
+	"version": "0.2",
+	"url": "https://github.com/julianhocker/WikidataShow",
+	"descriptionmsg": "desc",
+	"license-name": "MIT License",
+	"type": "parserhook",
+	"MessagesDirs": {
+		"SMWShow": [
+			"i18n"
+		]
+	},
+	"AutoloadClasses": {
+		"SMWShowHooks": "src/SMWShowHooks.php"
+	},
+	"ExtensionMessagesFiles": {
+		"SMWShowMagic": "SMWShow.i18n.php"
+	},
+	"Hooks": {
+		"ParserFirstCallInit": "GNDShowHooks::onParserFirstCallInit"
+	},
+	"manifest_version": 1
+}
