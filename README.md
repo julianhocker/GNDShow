@@ -11,3 +11,4 @@ The extension adds the following magic words to your mediawiki:
 ## Known issues 
 * Please open issues if you encounter problems 
 * I will work more on this, planning to add some more data you can get from the GND
+* File names are wrong 

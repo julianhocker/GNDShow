@@ -1,8 +1,8 @@
 {
-	"name": "SMWShow",
+	"name": "GNDShow",
 	"author": "Julian Hocker",
 	"version": "0.2",
-	"url": "https://github.com/julianhocker/WikidataShow",
+	"url": "https://github.com/julianhocker/GNDShow",
 	"descriptionmsg": "desc",
 	"license-name": "MIT License",
 	"type": "parserhook",
