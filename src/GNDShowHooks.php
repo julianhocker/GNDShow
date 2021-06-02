@@ -1,11 +1,11 @@
 <?php
-use Wikidata\Wikidata; #https://github.com/freearhey/wikidata
+
 class GNDShowHooks {
    // Register any render callbacks with the parser
    public static function onParserFirstCallInit( Parser $parser ) {
 
       // Create a function hook associating the magic word with renderExample()
-      $parser->setFunctionHook( 'gndshowlite', [ self::class, 'gndshowlite' ] );
+      $parser->setFunctionHook( 'gndshow', [ self::class, 'gndshowlite' ] );
    }
 
    public static function gndshowlite( Parser $parser, $param1 = '', $param2 = '') {

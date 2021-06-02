@@ -10,12 +10,12 @@ $magicWords = [];
  * @author Julian Hocker
  */
 $magicWords['en'] = [
-   'smwshow' => [ 0, 'smwshow' ],
+   'gndshow' => [ 0, 'gndshow' ],
 ];
 
 /** German
  * @author Julian Hocker
  */
 $magicWords['de'] = [
-   'smwshow' => [ 0, 'smwshow' ],
+   'gndshow' => [ 0, 'gndshow' ],
 ];
