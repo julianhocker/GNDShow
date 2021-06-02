@@ -7,15 +7,15 @@
 	"license-name": "MIT License",
 	"type": "parserhook",
 	"MessagesDirs": {
-		"SMWShow": [
+		"GNDShow": [
 			"i18n"
 		]
 	},
 	"AutoloadClasses": {
-		"SMWShowHooks": "src/SMWShowHooks.php"
+		"SMWShowHooks": "src/GNDShowHooks.php"
 	},
 	"ExtensionMessagesFiles": {
-		"SMWShowMagic": "SMWShow.i18n.php"
+		"SMWShowMagic": "GNDShow.i18n.php"
 	},
 	"Hooks": {
 		"ParserFirstCallInit": "GNDShowHooks::onParserFirstCallInit"
