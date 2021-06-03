@@ -5,7 +5,7 @@ The extension adds the following magic words to your mediawiki:
 * gndshowlite: takes in the p-value you want to show and only shows this information (fits great if you want to display local data from semantic mediawiki together with data from wikidata)
 
 ## Installation
-1. Clone this repo via git clone https://github.com/julianhocker/GNDShow.git into extensions 
+1. Clone this repo via git clone https://github.com/shelmz/GNDShow.git into extensions 
 2. Add wfLoadExtension('GNDShow'); to your LocalSettings.php
 
 ## Known issues 
