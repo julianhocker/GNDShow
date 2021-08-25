@@ -75,7 +75,6 @@ class GNDShowHooks
             console_log("GND-ID: " . $gnd) . "\n";
         }
 
-
         // // $endpoint = "$wgServer$wgScriptPath/api.php";
         // $endpoint = "$wgServer$wgScriptPath/api.php";
 
@@ -133,46 +132,53 @@ class GNDShowHooks
         // return "Hello World";
 
 
+        // #1 Getting the DNB-IDN by GND-ID
 
-
-
-
-        // Getting the DNB-IDN by GND-ID
-
-        $url1 = "https://services.dnb.de/sru/authorities?version=1.1&operation=searchRetrieve&query=nid%3D$gnd&recordSchema=MARC21-xml";
+        // $url1 = "https://services.dnb.de/sru/authorities?version=1.1&operation=searchRetrieve&query=nid%3D$gnd&recordSchema=MARC21-xml";
         // $url = "https://services.dnb.de/sru/authorities?version=1.1&operation=searchRetrieve&query=nid=$gnd&recordSchema=MARC21-xml";
-        // $url = "https://services.dnb.de/sru/authorities?version=1.1&operation=searchRetrieve&query=nid=$gnd&recordSchema=oai_dc";
+        $url1 = "https://services.dnb.de/sru/authorities?version=1.1&operation=searchRetrieve&query=nid%3D$gnd&recordSchema=oai_dc";
 
         $xml1 = simplexml_load_file($url1) or die("Can't connect to URL");
 
-        // separate controlfield with tag 001 --> DNB-IDN
-        foreach ($xml1->records->record->recordData->record->controlfield as $record) {
-            if (trim($record['tag'] == "001")) {
-                $idn = strval($record);
+        // // get DNB-IDN in MARC21-xml: separate controlfield with tag="001"
+        // foreach ($xml1->records->record->recordData->record->controlfield as $record) {
+        //     if (trim($record['tag'] == "001")) {
+        //         $idn = strval($record);
+        //         console_log("DNB-IDN: " . $idn);
+        //     }
+        // }
+
+        // get DNB-IDN in oai_dc: separate dc:identifier with xsi:type="dnb:IDN"
+
+        foreach ($xml1->records->record->recordData->dc as $record) {
+
+            $ns_dc = $record->children('http://purl.org/dc/elements/1.1/');
+
+            // $ns_xsi = $ns_dc->children['http://www.w3.org/2001/XMLSchema-instance'];
+
+            // if (trim($ns_xsi->identifier['type'] == "dnb:IDN")) {
+
+                $idn = strval(strval($ns_dc->identifier));
+
                 console_log("DNB-IDN: " . $idn);
-                // return $idn;
-            }
+            // }
         }
 
+            
 
 
+        // #2 Getting the auRef-Data by DNB-IDN
 
+        // string to concat all upcoming entries
+        $string = "";
 
+        $url2 = "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=auRef%3D$idn&recordSchema=oai_dc&maximumRecords=100";
 
-
-        // Getting the Author-Data by DNB-IDN
-
-        $url2 = "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=auRef%3D$idn&recordSchema=oai_dc";
-
-        console_log("Get Author-Infos: " . $url2);
+        console_log("Get 'Author of'-Data on: " . $url2);
 
         $xml2 = simplexml_load_file($url2) or die("Can't connect to URL");
 
-        // string to concat all entries
-        $string = "";
-        
-        foreach ($xml2->records->record as $record) {                    
-            
+        foreach ($xml2->records->record as $record) {
 
             // if (trim($record['tag'] == "001")) {
             // $idn = strval($record);
@@ -185,6 +191,40 @@ class GNDShowHooks
 
             // $namespaces = $record->getNamespaces(true);
             // var_dump($namespaces);
+
+            $ns_dc = $record->recordData->dc->children('http://purl.org/dc/elements/1.1/');
+
+            console_log(strval($ns_dc->title));
+
+            $string = $string . strval($ns_dc->date) . ": " . strval($ns_dc->title) . "\n";
+        }
+
+        // #3 Getting the betRef-Data by DNB-IDN
+
+        $url3 = "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=betRef%3D$idn&recordSchema=oai_dc&maximumRecords=100";
+
+        console_log("Get 'Involved with'-Data on: " . $url3);
+
+        $xml3 = simplexml_load_file($url3) or die("Can't connect to URL");
+
+        foreach ($xml3->records->record as $record) {
+
+            $ns_dc = $record->recordData->dc->children('http://purl.org/dc/elements/1.1/');
+
+            console_log(strval($ns_dc->title));
+
+            $string = $string . strval($ns_dc->date) . ": " . strval($ns_dc->title) . "\n";
+        }
+
+        // #4 Getting the swiRef-Data by DNB-IDN
+
+        $url4 = "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=swiRef%3D$idn&recordSchema=oai_dc&maximumRecords=100";
+
+        console_log("Get 'Topic in'-Data on: " . $url4);
+
+        $xml4 = simplexml_load_file($url4) or die("Can't connect to URL");
+
+        foreach ($xml4->records->record as $record) {
 
             $ns_dc = $record->recordData->dc->children('http://purl.org/dc/elements/1.1/');
 
