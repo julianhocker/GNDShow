@@ -134,37 +134,42 @@ class GNDShowHooks
 
         // #1 Getting the DNB-IDN by GND-ID
 
-        // $url1 = "https://services.dnb.de/sru/authorities?version=1.1&operation=searchRetrieve&query=nid%3D$gnd&recordSchema=MARC21-xml";
+        // $url_idn = "https://services.dnb.de/sru/authorities?version=1.1&operation=searchRetrieve&query=nid%3D$gnd&recordSchema=MARC21-xml";
         // $url = "https://services.dnb.de/sru/authorities?version=1.1&operation=searchRetrieve&query=nid=$gnd&recordSchema=MARC21-xml";
-        $url1 = "https://services.dnb.de/sru/authorities?version=1.1&operation=searchRetrieve&query=nid%3D$gnd&recordSchema=oai_dc";
+        $url_idn = "https://services.dnb.de/sru/authorities?version=1.1&operation=searchRetrieve&query=nid%3D$gnd&recordSchema=oai_dc";
 
-        $xml1 = simplexml_load_file($url1) or die("Can't connect to URL");
+        $xml_idn = simplexml_load_file($url_idn) or die("Can't connect to URL");
 
         // // get DNB-IDN in MARC21-xml: separate controlfield with tag="001"
-        // foreach ($xml1->records->record->recordData->record->controlfield as $record) {
+        // foreach ($xml_idn->records->record->recordData->record->controlfield as $record) {
         //     if (trim($record['tag'] == "001")) {
         //         $idn = strval($record);
         //         console_log("DNB-IDN: " . $idn);
         //     }
         // }
 
+        $ns = $xml_idn->getNamespaces(true);
+
         // get DNB-IDN in oai_dc: separate dc:identifier with xsi:type="dnb:IDN"
 
-        foreach ($xml1->records->record->recordData->dc as $record) {
+        foreach ($xml_idn->records->record->recordData->dc as $record) {
 
-            $ns_dc = $record->children('http://purl.org/dc/elements/1.1/');
+            $ns_dc = $record->children($ns['dc']);
 
             // $ns_xsi = $ns_dc->children['http://www.w3.org/2001/XMLSchema-instance'];
 
             // if (trim($ns_xsi->identifier['type'] == "dnb:IDN")) {
+            
+            foreach ($ns_dc->identifier as $identifier) {
+                if ($identifier->attributes("xsi", TRUE)->type == "dnb:IDN") {
+                    $idn = strval(strval($ns_dc->identifier));
+                }
+            }
 
-                $idn = strval(strval($ns_dc->identifier));
-
-                console_log("DNB-IDN: " . $idn);
+            console_log("DNB-IDN: " . $idn);
             // }
         }
 
-            
 
 
         // #2 Getting the auRef-Data by DNB-IDN
@@ -172,13 +177,15 @@ class GNDShowHooks
         // string to concat all upcoming entries
         $string = "";
 
-        $url2 = "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=auRef%3D$idn&recordSchema=oai_dc&maximumRecords=100";
+        $url_auRef = "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=auRef%3D$idn&recordSchema=oai_dc&maximumRecords=100";
 
-        console_log("Get 'Author of'-Data on: " . $url2);
+        console_log("Get 'Author of'-Data on: " . $url_auRef);
 
-        $xml2 = simplexml_load_file($url2) or die("Can't connect to URL");
+        $xml_auRef = simplexml_load_file($url_auRef) or die("Can't connect to URL");
 
-        foreach ($xml2->records->record as $record) {
+        $ns = $xml_auRef->getNamespaces(true);
+
+        foreach ($xml_auRef->records->record as $record) {
 
             // if (trim($record['tag'] == "001")) {
             // $idn = strval($record);
@@ -192,48 +199,149 @@ class GNDShowHooks
             // $namespaces = $record->getNamespaces(true);
             // var_dump($namespaces);
 
-            $ns_dc = $record->recordData->dc->children('http://purl.org/dc/elements/1.1/');
+            $ns_dc = $record->recordData->dc->children($ns['dc']);
 
-            console_log(strval($ns_dc->title));
+            // console_log(strval($ns_dc->title));
 
-            $string = $string . strval($ns_dc->date) . ": " . strval($ns_dc->title) . "\n";
+            $record_title = strval($ns_dc->title);
+            $record_creator = strval($ns_dc->creator);
+            $record_date = strval($ns_dc->date);
+
+            foreach ($ns_dc->identifier as $identifier) {
+                if ($identifier->attributes("xsi", TRUE)->type == "dnb:IDN") {
+                    // console_log("we have a winner!");
+                    $record_idn = strval($identifier);
+                }
+            }
+
+            $record_url = "http://d-nb.info/" . $record_idn;
+
+            $string = $string . $record_date . ": " . $record_title . ", " . $record_creator . ", " . $record_url . "\n";
         }
 
         // #3 Getting the betRef-Data by DNB-IDN
 
-        $url3 = "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=betRef%3D$idn&recordSchema=oai_dc&maximumRecords=100";
+        $url_betRef = "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=betRef%3D$idn&recordSchema=oai_dc&maximumRecords=100";
 
-        console_log("Get 'Involved with'-Data on: " . $url3);
+        console_log("Get 'Involved with'-Data on: " . $url_betRef);
 
-        $xml3 = simplexml_load_file($url3) or die("Can't connect to URL");
+        $xml_betRef = simplexml_load_file($url_betRef) or die("Can't connect to URL");
 
-        foreach ($xml3->records->record as $record) {
+        $ns = $xml_betRef->getNamespaces(true);
 
-            $ns_dc = $record->recordData->dc->children('http://purl.org/dc/elements/1.1/');
+        foreach ($xml_betRef->records->record as $record) {
 
-            console_log(strval($ns_dc->title));
+            $ns_dc = $record->recordData->dc->children($ns['dc']);
 
-            $string = $string . strval($ns_dc->date) . ": " . strval($ns_dc->title) . "\n";
+            // console_log(strval($ns_dc->title));
+
+            $record_title = strval($ns_dc->title);
+            $record_creator = strval($ns_dc->creator);
+            $record_date = strval($ns_dc->date);
+
+            foreach ($ns_dc->identifier as $identifier) {
+                if ($identifier->attributes("xsi", TRUE)->type == "dnb:IDN") {
+                    // console_log("we have a winner!");
+                    $record_idn = strval($identifier);
+                }
+            }
+
+            $record_url = "http://d-nb.info/" . $record_idn;
+
+            $string = $string . $record_date . ": " . $record_title . ", " . $record_creator . ", " . $record_url . "\n";
         }
 
         // #4 Getting the swiRef-Data by DNB-IDN
 
-        $url4 = "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=swiRef%3D$idn&recordSchema=oai_dc&maximumRecords=100";
+        $url_swiRef = "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=swiRef%3D$idn&recordSchema=oai_dc&maximumRecords=100";
 
-        console_log("Get 'Topic in'-Data on: " . $url4);
+        console_log("Get 'Topic in'-Data on: " . $url_swiRef);
 
-        $xml4 = simplexml_load_file($url4) or die("Can't connect to URL");
+        $xml_swiRef = simplexml_load_file($url_swiRef) or die("Can't connect to URL");
 
-        foreach ($xml4->records->record as $record) {
+        $ns = $xml_swiRef->getNamespaces(true);
 
-            $ns_dc = $record->recordData->dc->children('http://purl.org/dc/elements/1.1/');
+        $swiRef_result = array();
 
-            console_log(strval($ns_dc->title));
+        foreach ($xml_swiRef->records->record as $record) {
 
-            $string = $string . strval($ns_dc->date) . ": " . strval($ns_dc->title) . "\n";
+            $ns_dc = $record->recordData->dc->children($ns['dc']);                       
+
+            // console_log(strval($ns_dc->title));
+
+            $record_title = strval($ns_dc->title);
+            $record_creator = strval($ns_dc->creator);
+            $record_date = strval($ns_dc->date);
+
+            // $record_url = strval($ns_dc->identifier[$ns['xsi']->type] == "dnb:IDN"); // output: 1 --> yes there is a tag with this attribute...
+            // if ($ns_dc->identifier[$ns['xsi']->type] == "dnb:IDN") {
+            //     console_log("we have a winner!");
+            //     $record_idn = strval($ns_dc->identifier);
+            // }
+            // $record_idn = $ns_dc->identifier[$ns['xsi']->type] == "dnb:IDN";
+
+            // $record_tag = $ns_dc->identifier->attributes("xsi", TRUE)->type; // output: dnb:IDN
+            foreach ($ns_dc->identifier as $identifier) {
+                if ($identifier->attributes("xsi", TRUE)->type == "dnb:IDN") {
+                    // console_log("we have a winner!");
+                    $record_idn = strval($identifier);
+                }
+            }
+
+            // console_log("record_tag: " . $record_tag);
+            // console_log("record_idn: " . $record_idn);
+
+            $record_url = "http://d-nb.info/" . $record_idn;
+
+            $string = $string . $record_date . ": " . $record_title . ", " . $record_creator . ", " . $record_url . "\n";
+
+          
         }
 
+        // array_push($swiRef_result, "
+        //     |strval($ns_dc->title)
+        //     |$website
+        //     |-
+        // ");  
+
+        console_log("swiRef-Results: " . $swiRef_result);
+        
         return $string;
+
+        // $output = "
+        //     {| class='wikitable'
+        //     !$websiteString
+        //     |$website
+        //     |-
+        //     !$adressString
+        //     |$adress
+        //     |-
+        //     !$mapString
+        //     |$coordinates
+        //     |-
+        //     !$namesString
+        //     |$nameresult
+        //     |-
+        //     !$foundedString
+        //     |$earliestRecord[year], $inception
+        //     |-
+        //     !$imageString
+        //     |$imagewiki
+        //     |-
+        //     !$instanceString
+        //     |$instanceResult
+        //     |-
+        //     !$operatorSring
+        //     |$operatorResult
+        //     |-
+        //     !$wikipediaString
+        //     |$wikipedialink
+        //     |-
+        //     !$gndString
+        //     |$gndlink
+        //     |}";
+
+        // return $output;
 
 
         // $dom = new DOMDocument("1.0");
@@ -287,7 +395,6 @@ class GNDShowHooks
 
 
     }
-
 
     public static function getData($properties = '', $pvalue = '')
     { #get data if p-value only has one value
