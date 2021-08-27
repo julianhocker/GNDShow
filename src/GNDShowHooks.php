@@ -175,7 +175,7 @@ class GNDShowHooks
         // #2 Getting the auRef-Data by DNB-IDN
 
         // string to concat all upcoming entries
-        $string = "";
+        // $string = "";
 
         $url_auRef = "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=auRef%3D$idn&recordSchema=oai_dc&maximumRecords=100";
 
@@ -184,6 +184,8 @@ class GNDShowHooks
         $xml_auRef = simplexml_load_file($url_auRef) or die("Can't connect to URL");
 
         $ns = $xml_auRef->getNamespaces(true);
+
+        $auRef_result = "";
 
         foreach ($xml_auRef->records->record as $record) {
 
@@ -216,7 +218,15 @@ class GNDShowHooks
 
             $record_url = "http://d-nb.info/" . $record_idn;
 
-            $string = $string . $record_date . ": " . $record_title . ", " . $record_creator . ", " . $record_url . "\n";
+            // $string = $string . $record_date . ": " . $record_title . ", " . $record_creator . ", " . $record_url . "\n";
+
+            $auRef_result = $auRef_result . "
+                |$record_title
+                |$record_creator
+                |$record_date
+                |$record_url
+                |-
+            ";
         }
 
         // #3 Getting the betRef-Data by DNB-IDN
@@ -228,6 +238,8 @@ class GNDShowHooks
         $xml_betRef = simplexml_load_file($url_betRef) or die("Can't connect to URL");
 
         $ns = $xml_betRef->getNamespaces(true);
+
+        $betRef_result = "";
 
         foreach ($xml_betRef->records->record as $record) {
 
@@ -248,7 +260,15 @@ class GNDShowHooks
 
             $record_url = "http://d-nb.info/" . $record_idn;
 
-            $string = $string . $record_date . ": " . $record_title . ", " . $record_creator . ", " . $record_url . "\n";
+            // $string = $string . $record_date . ": " . $record_title . ", " . $record_creator . ", " . $record_url . "\n";
+
+            $betRef_result = $betRef_result ."
+                |$record_title
+                |$record_creator
+                |$record_date
+                |$record_url
+                |-
+            ";
         }
 
         // #4 Getting the swiRef-Data by DNB-IDN
@@ -261,7 +281,8 @@ class GNDShowHooks
 
         $ns = $xml_swiRef->getNamespaces(true);
 
-        $swiRef_result = array();
+        // $swiRef_result = array();
+        $swiRef_result = "";
 
         foreach ($xml_swiRef->records->record as $record) {
 
@@ -293,55 +314,72 @@ class GNDShowHooks
 
             $record_url = "http://d-nb.info/" . $record_idn;
 
-            $string = $string . $record_date . ": " . $record_title . ", " . $record_creator . ", " . $record_url . "\n";
+            // $string = $string . $record_date . ": " . $record_title . ", " . $record_creator . ", " . $record_date . "\n";
 
+            // array_push($swiRef_result, "
+            //     |$record_title
+            //     |$record_creator
+            //     |$record_date
+            //     |$record_url
+            //     |-
+            // ");  
+
+            $swiRef_result = $swiRef_result . "
+                |$record_title
+                |$record_creator
+                |$record_date
+                |$record_url
+                |-
+            ";
           
         }
 
-        // array_push($swiRef_result, "
-        //     |strval($ns_dc->title)
-        //     |$website
-        //     |-
-        // ");  
-
-        console_log("swiRef-Results: " . $swiRef_result);
         
-        return $string;
 
-        // $output = "
-        //     {| class='wikitable'
-        //     !$websiteString
-        //     |$website
-        //     |-
-        //     !$adressString
-        //     |$adress
-        //     |-
-        //     !$mapString
-        //     |$coordinates
-        //     |-
-        //     !$namesString
-        //     |$nameresult
-        //     |-
-        //     !$foundedString
-        //     |$earliestRecord[year], $inception
-        //     |-
-        //     !$imageString
-        //     |$imagewiki
-        //     |-
-        //     !$instanceString
-        //     |$instanceResult
-        //     |-
-        //     !$operatorSring
-        //     |$operatorResult
-        //     |-
-        //     !$wikipediaString
-        //     |$wikipedialink
-        //     |-
-        //     !$gndString
-        //     |$gndlink
-        //     |}";
+        // console_log("swiRef-Results: " . strval($swiRef_result));
+        
+        // return $string;
 
-        // return $output;
+        $output = "
+            {| class='wikitable'
+            !Titel
+            !Verfasser:in
+            !Datum
+            !Quelle
+            |-
+            " .$auRef_result . $betRef_result . $swiRef_result;
+            // !$websiteString
+            // |$website
+            // |-
+            // !$adressString
+            // |$adress
+            // |-
+            // !$mapString
+            // |$coordinates
+            // |-
+            // !$namesString
+            // |$nameresult
+            // |-
+            // !$foundedString
+            // |$earliestRecord[year], $inception
+            // |-
+            // !$imageString
+            // |$imagewiki
+            // |-
+            // !$instanceString
+            // |$instanceResult
+            // |-
+            // !$operatorSring
+            // |$operatorResult
+            // |-
+            // !$wikipediaString
+            // |$wikipedialink
+            // |-
+            // !$gndString
+            // |$gndlink
+            // |}";
+
+        return $output;
 
 
         // $dom = new DOMDocument("1.0");
