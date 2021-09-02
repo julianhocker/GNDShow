@@ -11,6 +11,7 @@ $magicWords = [];
  */
 $magicWords['en'] = [
    'gndshow' => [ 0, 'gndshow' ],
+   'bbfshow' => [ 0, 'bbfshow' ],
 ];
 
 /** German
@@ -18,4 +19,6 @@ $magicWords['en'] = [
  */
 $magicWords['de'] = [
    'gndshow' => [ 0, 'gndshow' ],
+   'bbfshow' => [ 0, 'bbfshow' ],
 ];
+
