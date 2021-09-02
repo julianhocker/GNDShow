@@ -72,7 +72,7 @@ class GNDShowHooks
 
             $GLOBALS["output"] = $GLOBALS["output"] . $refResult;
 
-            console_log("refIdns-Array: " . print_r($refIdns));
+            // console_log("refIdns-Array: " . print_r($refIdns));
 
             return $refIdns;
         }
