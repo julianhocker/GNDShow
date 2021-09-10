@@ -23,14 +23,14 @@ class GNDShowHooks
             echo '</script>';
         }
 
-        
+
         // function for repeating publication fetch and data processing
         function getDNBref($refKey, $idn, $refIdns)
         {
 
             $urlRef = "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=$refKey%3D$idn&recordSchema=oai_dc&maximumRecords=100";
 
-            console_log("Get 'Author of'-Data on: " . $urlRef);
+            // console_log("Get 'Author of'-Data on: " . $urlRef);
 
             $xmlRef = simplexml_load_file($urlRef) or die("Can't connect to URL");
 
@@ -54,10 +54,9 @@ class GNDShowHooks
 
                 $record_url = "http://d-nb.info/" . $record_idn;
 
+                # check on doublettes - if not, catch this object
+                if (in_array($record_idn, $refIdns) !== true) {
 
-                if (in_array($record_idn, $refIdns)) {
-                    console_log($record_idn . " is already in list!");
-                } else {
                     array_push($refIdns, $record_idn);
 
                     $refResult = $refResult . "
@@ -83,7 +82,7 @@ class GNDShowHooks
         global $wgScriptPath;
         global $wgServer;
 
-        console_log("\$wgServer " . $wgServer);
+        // console_log("\$wgServer " . $wgServer);
 
         $language = wfMessage('language')->plain();
         $wikilanguage = $language . "wiki";
@@ -157,11 +156,11 @@ class GNDShowHooks
                 }
             }
 
-            console_log("DNB-IDN: " . $idn);
+            // console_log("DNB-IDN: " . $idn);
             // }
         }
 
-        global $output;        
+        global $output;
 
         // Prepared Output base
         $output = "
@@ -188,9 +187,110 @@ class GNDShowHooks
         return $output;
     }
 
+    # get bbf data by manually given on edit Wiki page
     public static function bbfshowlite(Parser $parser, $param1 = '', $param2 = '')
     {
-        return "BBFShow Test!";
+
+        #function to get bbf object data
+
+        function getBbfRef($urn, $bbfRefIdns)
+        {
+            $bbfURL = "https://scripta.bbf.dipf.de/viewer/oai?verb=GetRecord&metadataPrefix=oai_dc&identifier=$urn";
+
+            $xmlRef = @simplexml_load_file($bbfURL) or die("Can't connect to URL");
+
+            // console_log($xmlRef);
+
+            # Namespaces: $ns for own use, register mets to XPath
+            $ns = $xmlRef->getNamespaces(true);
+   
+            $refResult = "";
+
+            $metadata = $xmlRef->GetRecord->record->metadata;
+            $ns_oaidc = $metadata->children($ns['oai_dc']);
+            $oaidc = $ns_oaidc->dc;
+            $ns_dc = $oaidc->children($ns['dc']);
+
+            $record_title = strval($ns_dc->title);
+            // console_log("record_title: " . $record_title);
+            $record_date = strval($ns_dc->date);
+            $record_desc = strval($ns_dc->source);
+            $record_url = strval($ns_dc->identifier);
+
+            $record_desc = "'". $record_desc . "'";
+            
+            # prevent table break by string content
+            // $record_desc = str_replace("-: ", "", $record_desc);
+            // $record_desc = preg_replace("/[\r\n]+/", "\n", $record_desc);
+            // $record_desc = wordwrap($record_desc,120, '<br/>', true);
+            // $record_desc = nl2br($record_desc);
+
+            // console_log($record_desc);
+
+            $refResult = $refResult . "
+                    |$record_title
+                    |$record_date
+                    |$record_url
+                    |$record_desc
+                    |-
+                ";
+
+            $GLOBALS["bbfOutput"] = $GLOBALS["bbfOutput"] . $refResult;
+
+            return $bbfRefIdns;
+        }
+
+
+        global $bbfOutput;
+
+        // Prepared Output base
+        $bbfOutput = "
+            {| class='wikitable'
+            !Titel
+            !Datum
+            !Quelle
+            !Beschreibung
+            |-
+            ";
+
+        // Collection of fetched publication BBF-Object-URNs to prevent doublettes, used as return value to pass it with every ref-data-fetch
+        $bbfRefIdns = array();
+
+
+        # check if multiple URNs been given
+        if (strpos($param1, ",")) {
+
+            # split up the URNs by comma
+            $bbfarray = explode(",", $param1);
+
+
+            // console_log("arr0: " . $bbfarray[0] ."; arr1: " . $bbfarray[1]);           
+
+            # get data by multiple given URNs
+            foreach ($bbfarray as $urn) {
+                
+
+                # check on doublettes
+                if (in_array($urn, $bbfRefIdns) !== true ) {
+
+                    array_push($bbfRefIdns, $urn);
+
+                    getBbfRef($urn, $bbfRefIdns);
+                }
+                else {
+                    console_log($urn . " already fetched!");
+                }
+
+                
+                // console_log($urn);
+            }
+        }
+        # get data by single given URN
+        else {
+            getBbfRef($param1, $bbfRefIdns);
+        }
+
+        return $bbfOutput;
     }
 
     public static function getData($properties = '', $pvalue = '')
