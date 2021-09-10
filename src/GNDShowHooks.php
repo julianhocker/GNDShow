@@ -76,58 +76,66 @@ class GNDShowHooks
             return $refIdns;
         }
 
-        //Param1 represents the id of the value e.g. 245 for the title
-        //Param2 represents the id of the literature, e.g. 975877089
+        //Param1 represents the wikidata-id
 
         global $wgScriptPath;
         global $wgServer;
 
-        // console_log("\$wgServer " . $wgServer);
+        $gnd = "";
 
-        $language = wfMessage('language')->plain();
-        $wikilanguage = $language . "wiki";
-        $title = $parser->getTitle()->getText();
-        $titleunderscores = $parser->getTitle()->getDBKey();
-        ##get wikidatalink from actual page
-        if (empty($param2)) { #if param2 is not set, take the wikidatalink from the actual page
+        // if param1 is given, use that as gnd-id eg. "280275-2"
+        if (empty($param1) !== true) {
+            // console_log("thank you for " . $param1);
+            $gnd = $param1;
+        }
+        else # if param1 is NOT given, try to fetch gnd-id within article by Wikidata-ID & function "getData" via parameter P227
+        {
+            // console_log("no Wikidata-ID? no way!");
+            $language = wfMessage('language')->plain();
+            $wikilanguage = $language . "wiki";
+            $title = $parser->getTitle()->getText();
+            $titleunderscores = $parser->getTitle()->getDBKey();
+            ##get wikidatalink from actual page
+            if (empty($param2)) { #if param2 is not set, take the wikidatalink from the actual page
 
-            $endpoint = "$wgServer$wgScriptPath/api.php";
-            $url = "$endpoint?action=ask&query=[[$titleunderscores]]|?Wikidata_ID|limit=5&format=json";
-            $json_data = file_get_contents($url);
-            $apiresponse = json_decode($json_data, true);
-            try {
-                if (empty($apiresponse['query']['results'][$title]['printouts']['Wikidata ID'][0])) {
-                    throw new Exception("not defined");
-                } else {
-                    $wikidataentry = $apiresponse['query']['results'][$title]['printouts']['Wikidata ID'][0]; #get wikidatalink from api
+                $endpoint = "$wgServer$wgScriptPath/api.php";
+                $url = "$endpoint?action=ask&query=[[$titleunderscores]]|?Wikidata_ID|limit=5&format=json";
+                $json_data = file_get_contents($url);
+                $apiresponse = json_decode($json_data, true);
+                try {
+                    if (empty($apiresponse['query']['results'][$title]['printouts']['Wikidata ID'][0])) {
+                        throw new Exception("not defined");
+                    } else {
+                        $wikidataentry = $apiresponse['query']['results'][$title]['printouts']['Wikidata ID'][0]; #get wikidatalink from api
+                    }
                 }
-            }
-            //catch exception
-            catch (Exception $e) {
-                return "No wikidata entry found";
-            }
-        } else {
-            $wikidataentry = $param2;
-        }
-
-        $wikidata = new Wikidata(); #init object to get info from wikidata
-        #check if we get valid information from wikidata
-        try {
-            if (empty($wikidata->get($wikidataentry, $language))) {
-                throw new Exception('not defined');
+                //catch exception
+                catch (Exception $e) {
+                    return "No wikidata entry found";
+                }
             } else {
-                $entity = $wikidata->get($wikidataentry, $language); # get data for entitiy (with Q-number)
-                $properties = $entity->properties->toArray(); #convert data to array to make handling easier
+                $wikidataentry = $param2;
             }
-        } catch (Exception $e) {
-            return "wrong Wikidata ID";
-        }
 
-        $gnd = self::getData($properties, "P227");
-        if ($gnd == "not defined") {
-            return wfMessage('unknown')->plain();
-        } else {
-            console_log("GND-ID: " . $gnd) . "\n";
+            $wikidata = new Wikidata(); #init object to get info from wikidata
+            #check if we get valid information from wikidata
+            try {
+                if (empty($wikidata->get($wikidataentry, $language))) {
+                    throw new Exception('not defined');
+                } else {
+                    $entity = $wikidata->get($wikidataentry, $language); # get data for entitiy (with Q-number)
+                    $properties = $entity->properties->toArray(); #convert data to array to make handling easier
+                }
+            } catch (Exception $e) {
+                return "wrong Wikidata ID";
+            }
+
+            $gnd = self::getData($properties, "P227");
+            if ($gnd == "not defined") {
+                return wfMessage('unknown')->plain();
+            } else {
+                console_log("GND-ID: " . $gnd) . "\n";
+            }
         }
 
         // #1 Getting the DNB-IDN by GND-ID
