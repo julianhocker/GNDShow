@@ -1,9 +1,9 @@
 # GNDShow
-This extension for mediawiki allows you to integrate data from the German national libary (GND) and the Library for Research on the History of Education (BBF) into your wiki. German national library has information about all books published in Germany, so this makes it easy for you to add library information to your wiki. In the case of the Library for Research on the History of Education, specific publications can be issued collectively.
+This extension for mediawiki allows you to integrate data from the German National Libary (DNB) - to be more precise: from the Integrated Authority File (GND) - and the Library for Research on the History of Education (BBF) into your wiki. The DNB has information about all books published in Germany, so this makes it easy for you to add library information to your wiki. In the case of the BBF, specific publications can be issued collectively.
  
 The extension adds the following magic words to your mediawiki:
-* gndshowlite: takes in the p-value you want to show and only shows this information (fits great if you want to display local data from semantic mediawiki together with data from wikidata) - instead, a specific GND ID can also be passed
-* bbfshowlite: takes in given BBF URNs (single or comma separated list) for specific publications
+* gndshowlite: takes in the p-value you want to show and only shows this information (fits great if you want to display local data from semantic mediawiki together with data from wikidata) - instead, one specific GND ID can also be passed
+* bbfshowlite: takes in given BBF URNs (single or comma separated list) for specific publications you want to show and only shows this information
 
 ## Installation
 1. Install WikidataShow (required to fetch automatic p-value): https://github.com/julianhocker/WikidataShow
