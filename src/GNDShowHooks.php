@@ -1,6 +1,6 @@
 <?php
 
-use Wikidata\Wikidata; #https://github.com/freearhey/wikidata
+use Wikidata\Wikidata; // https://github.com/freearhey/wikidata
 class GNDShowHooks
 {
     // Register any render callbacks with the parser
@@ -12,25 +12,13 @@ class GNDShowHooks
         $parser->setFunctionHook('bbfshow', [self::class, 'bbfshowlite']);
     }
 
-
     public static function gndshowlite(Parser $parser, $param1 = '', $param2 = '')
     {
-        // for debugging: console-log
-        function console_log($data)
-        {
-            echo '<script>';
-            echo 'console.log(' . json_encode($data) . ')';
-            echo '</script>';
-        }
-
-
         // function for repeating publication fetch and data processing
         function getDNBref($refKey, $idn, $refIdns)
         {
 
             $urlRef = "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=$refKey%3D$idn&recordSchema=oai_dc&maximumRecords=100";
-
-            // console_log("Get 'Author of'-Data on: " . $urlRef);
 
             $xmlRef = simplexml_load_file($urlRef) or die("Can't connect to URL");
 
@@ -54,7 +42,7 @@ class GNDShowHooks
 
                 $record_url = "http://d-nb.info/" . $record_idn;
 
-                # check on doublettes - if not, catch this object
+                // check on doublettes - if not, catch this object
                 if (in_array($record_idn, $refIdns) !== true) {
 
                     array_push($refIdns, $record_idn);
@@ -71,34 +59,30 @@ class GNDShowHooks
 
             $GLOBALS["output"] = $GLOBALS["output"] . $refResult;
 
-            // console_log("refIdns-Array: " . print_r($refIdns));
-
             return $refIdns;
         }
 
         //Param1 represents the wikidata-id
 
         global $wgScriptPath;
-        global $wgServer;
+        global $wgDockerServer;
 
         $gnd = "";
 
         // if param1 is given, use that as gnd-id eg. "280275-2"
         if (empty($param1) !== true) {
-            // console_log("thank you for " . $param1);
             $gnd = $param1;
         }
-        else # if param1 is NOT given, try to fetch gnd-id within article by Wikidata-ID & function "getData" via parameter P227
+        else // if param1 is NOT given, try to fetch gnd-id within article by Wikidata-ID & function "getData" via parameter P227
         {
-            // console_log("no Wikidata-ID? no way!");
             $language = wfMessage('language')->plain();
             $wikilanguage = $language . "wiki";
             $title = $parser->getTitle()->getText();
             $titleunderscores = $parser->getTitle()->getDBKey();
-            ##get wikidatalink from actual page
-            if (empty($param2)) { #if param2 is not set, take the wikidatalink from the actual page
+            // get wikidatalink from actual page
+            if (empty($param2)) { // if param2 is not set, take the wikidatalink from the actual page
 
-                $endpoint = "$wgServer$wgScriptPath/api.php";
+                $endpoint = "$wgDockerServer$wgScriptPath/api.php";
                 $url = "$endpoint?action=ask&query=[[$titleunderscores]]|?Wikidata_ID|limit=5&format=json";
                 $json_data = file_get_contents($url);
                 $apiresponse = json_decode($json_data, true);
@@ -106,7 +90,7 @@ class GNDShowHooks
                     if (empty($apiresponse['query']['results'][$title]['printouts']['Wikidata ID'][0])) {
                         throw new Exception("not defined");
                     } else {
-                        $wikidataentry = $apiresponse['query']['results'][$title]['printouts']['Wikidata ID'][0]; #get wikidatalink from api
+                        $wikidataentry = $apiresponse['query']['results'][$title]['printouts']['Wikidata ID'][0]; // get wikidatalink from api
                     }
                 }
                 //catch exception
@@ -117,14 +101,15 @@ class GNDShowHooks
                 $wikidataentry = $param2;
             }
 
-            $wikidata = new Wikidata(); #init object to get info from wikidata
-            #check if we get valid information from wikidata
+            $wikidata = new Wikidata(); //init object to get info from wikidata
+
+            //check if we get valid information from wikidata
             try {
                 if (empty($wikidata->get($wikidataentry, $language))) {
                     throw new Exception('not defined');
                 } else {
-                    $entity = $wikidata->get($wikidataentry, $language); # get data for entitiy (with Q-number)
-                    $properties = $entity->properties->toArray(); #convert data to array to make handling easier
+                    $entity = $wikidata->get($wikidataentry, $language); // get data for entitiy (with Q-number)
+                    $properties = $entity->properties->toArray(); // convert data to array to make handling easier
                 }
             } catch (Exception $e) {
                 return "wrong Wikidata ID";
@@ -133,8 +118,6 @@ class GNDShowHooks
             $gnd = self::getData($properties, "P227");
             if ($gnd == "not defined") {
                 return wfMessage('unknown')->plain();
-            } else {
-                console_log("GND-ID: " . $gnd) . "\n";
             }
         }
 
@@ -144,7 +127,7 @@ class GNDShowHooks
 
         $xml_idn = simplexml_load_file($url_idn) or die("Can't connect to URL");
 
-        // // get DNB-IDN in MARC21-xml: separate controlfield with tag="001"
+        // get DNB-IDN in MARC21-xml: separate controlfield with tag="001"
 
         $ns = $xml_idn->getNamespaces(true);
 
@@ -164,8 +147,6 @@ class GNDShowHooks
                 }
             }
 
-            // console_log("DNB-IDN: " . $idn);
-            // }
         }
 
         global $output;
@@ -195,11 +176,11 @@ class GNDShowHooks
         return $output;
     }
 
-    # get bbf data by manually given on edit Wiki page
+    // get bbf data by manually given on edit Wiki page
     public static function bbfshowlite(Parser $parser, $param1 = '', $param2 = '')
     {
 
-        #function to get bbf object data
+        // function to get bbf object data
 
         function getBbfRef($urn, $bbfRefIdns)
         {
@@ -207,9 +188,7 @@ class GNDShowHooks
 
             $xmlRef = @simplexml_load_file($bbfURL) or die("Can't connect to URL");
 
-            // console_log($xmlRef);
-
-            # Namespaces: $ns for own use, register mets to XPath
+            // Namespaces: $ns for own use, register mets to XPath
             $ns = $xmlRef->getNamespaces(true);
    
             $refResult = "";
@@ -219,21 +198,12 @@ class GNDShowHooks
             $oaidc = $ns_oaidc->dc;
             $ns_dc = $oaidc->children($ns['dc']);
 
-            $record_title = strval($ns_dc->title);
-            // console_log("record_title: " . $record_title);
+            $record_title = strval($ns_dc->title);            
             $record_date = strval($ns_dc->date);
             $record_desc = strval($ns_dc->source);
             $record_url = strval($ns_dc->identifier);
 
             $record_desc = "'". $record_desc . "'";
-            
-            # prevent table break by string content
-            // $record_desc = str_replace("-: ", "", $record_desc);
-            // $record_desc = preg_replace("/[\r\n]+/", "\n", $record_desc);
-            // $record_desc = wordwrap($record_desc,120, '<br/>', true);
-            // $record_desc = nl2br($record_desc);
-
-            // console_log($record_desc);
 
             $refResult = $refResult . "
                     |$record_title
@@ -247,7 +217,6 @@ class GNDShowHooks
 
             return $bbfRefIdns;
         }
-
 
         global $bbfOutput;
 
@@ -264,36 +233,25 @@ class GNDShowHooks
         // Collection of fetched publication BBF-Object-URNs to prevent doublettes, used as return value to pass it with every ref-data-fetch
         $bbfRefIdns = array();
 
-
-        # check if multiple URNs been given
+        // check if multiple URNs been given
         if (strpos($param1, ",")) {
 
-            # split up the URNs by comma
-            $bbfarray = explode(",", $param1);
+            // split up the URNs by comma
+            $bbfarray = explode(",", $param1);   
 
-
-            // console_log("arr0: " . $bbfarray[0] ."; arr1: " . $bbfarray[1]);           
-
-            # get data by multiple given URNs
+            // get data by multiple given URNs
             foreach ($bbfarray as $urn) {
                 
-
-                # check on doublettes
+                // check on doublettes
                 if (in_array($urn, $bbfRefIdns) !== true ) {
 
                     array_push($bbfRefIdns, $urn);
 
                     getBbfRef($urn, $bbfRefIdns);
                 }
-                else {
-                    console_log($urn . " already fetched!");
-                }
-
-                
-                // console_log($urn);
             }
         }
-        # get data by single given URN
+        // get data by single given URN
         else {
             getBbfRef($param1, $bbfRefIdns);
         }
@@ -302,7 +260,7 @@ class GNDShowHooks
     }
 
     public static function getData($properties = '', $pvalue = '')
-    { #get data if p-value only has one value
+    { // get data if p-value only has one value
         try {
             if (empty($properties[$pvalue]->values[0]->label)) {
                 throw new Exception("not defined");
