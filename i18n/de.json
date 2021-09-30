@@ -1,6 +1,7 @@
 {	"@metadata": {
 		"authors": [
-			"Julian Hocker"
+			"Julian Hocker",
+			"Patrick Schmelmer"
 		]
 	},
 	"desc": "Diese Extension erlaubt das Anzeigen von Informationen aus Wikidata",
