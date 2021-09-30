@@ -6,12 +6,13 @@ The extension adds the following magic words to your mediawiki:
 * bbfshowlite: takes in given BBF URNs (single or comma separated list) for specific publications you want to show and only shows this information
 
 ## Installation
-1. Install WikidataShow (required to fetch automatic p-value): https://github.com/julianhocker/WikidataShow
-2. Clone this repo via git clone https://github.com/julianhocker/GNDShow.git into extensions 
-3. Add wfLoadExtension('GNDShow'); to your LocalSettings.php
+1. Add "freearhey/wikidata": "3.2" to your composer.json of the wiki in the section "require"
+2. Run composer update --no-dev
+3. Clone this repo via git clone https://github.com/julianhocker/GNDShow.git into extensions  
+4. Add wfLoadExtension('GNDShow'); to your LocalSettings.php
 
 ## Known issues 
-* Please open issues if you encounter problems
+* Please open issues if you encounter problems 
 
 ## Links
 * https://www.dnb.de/DE/Professionell/Standardisierung/GND/gnd_node.html
