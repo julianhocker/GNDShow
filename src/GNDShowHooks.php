@@ -144,7 +144,7 @@ class GNDShowHooks
         // get DNB-IDN in oai_dc: separate dc:identifier with xsi:type="dnb:IDN"
 
         try {
-            if (empty(xml_idn->records->record->recordData->dc)) {
+            if (empty($xml_idn->records->record->recordData->dc)) {
                 throw new Exception('not defined');
             } else {
                 foreach ($xml_idn->records->record->recordData->dc as $record) {
