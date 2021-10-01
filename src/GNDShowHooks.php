@@ -234,7 +234,7 @@ class GNDShowHooks
                 }
             } catch (Exception $e) {
                 $GLOBALS["bbfOutput"] = "wrong BBF URN";
-                return "wrong BBF URN";
+                return $e->getMessage();
             }
             
         }
