@@ -25,41 +25,48 @@ class GNDShowHooks
             $ns = $xmlRef->getNamespaces(true);
 
             $refResult = "";
+            
+            try {
 
-            foreach ($xmlRef->records->record as $record) {
+                foreach ($xmlRef->records->record as $record) {
 
-                $ns_dc = $record->recordData->dc->children($ns['dc']);
-
-                $record_title = strval($ns_dc->title);
-                $record_creator = strval($ns_dc->creator);
-                $record_date = strval($ns_dc->date);
-
-                foreach ($ns_dc->identifier as $identifier) {
-                    if ($identifier->attributes("xsi", TRUE)->type == "dnb:IDN") {
-                        $record_idn = strval(strval($ns_dc->identifier));
+                    $ns_dc = $record->recordData->dc->children($ns['dc']);
+    
+                    $record_title = strval($ns_dc->title);
+                    $record_creator = strval($ns_dc->creator);
+                    $record_date = strval($ns_dc->date);
+    
+                    foreach ($ns_dc->identifier as $identifier) {
+                        if ($identifier->attributes("xsi", TRUE)->type == "dnb:IDN") {
+                            $record_idn = strval(strval($ns_dc->identifier));
+                        }
+                    }
+    
+                    $record_url = "http://d-nb.info/" . $record_idn;
+    
+                    // check on doublettes - if not, catch this object
+                    if (in_array($record_idn, $refIdns) !== true) {
+    
+                        array_push($refIdns, $record_idn);
+    
+                        $refResult = $refResult . "
+                                |$record_title
+                                |$record_creator
+                                |$record_date
+                                |$record_url
+                                |-
+                            ";
                     }
                 }
+    
+                $GLOBALS["output"] = $GLOBALS["output"] . $refResult;
+    
+                return $refIdns;
 
-                $record_url = "http://d-nb.info/" . $record_idn;
-
-                // check on doublettes - if not, catch this object
-                if (in_array($record_idn, $refIdns) !== true) {
-
-                    array_push($refIdns, $record_idn);
-
-                    $refResult = $refResult . "
-                            |$record_title
-                            |$record_creator
-                            |$record_date
-                            |$record_url
-                            |-
-                        ";
-                }
             }
-
-            $GLOBALS["output"] = $GLOBALS["output"] . $refResult;
-
-            return $refIdns;
+            catch (Exception $e) {
+                return "wrong DNB IDN";
+            }            
         }
 
         //Param1 represents the wikidata-id
@@ -133,47 +140,54 @@ class GNDShowHooks
 
         // get DNB-IDN in oai_dc: separate dc:identifier with xsi:type="dnb:IDN"
 
-        foreach ($xml_idn->records->record->recordData->dc as $record) {
+        try {
 
-            $ns_dc = $record->children($ns['dc']);
+            foreach ($xml_idn->records->record->recordData->dc as $record) {
 
-            // $ns_xsi = $ns_dc->children['http://www.w3.org/2001/XMLSchema-instance'];
-
-            // if (trim($ns_xsi->identifier['type'] == "dnb:IDN")) {
-
-            foreach ($ns_dc->identifier as $identifier) {
-                if ($identifier->attributes("xsi", TRUE)->type == "dnb:IDN") {
-                    $idn = strval(strval($ns_dc->identifier));
+                $ns_dc = $record->children($ns['dc']);
+    
+                // $ns_xsi = $ns_dc->children['http://www.w3.org/2001/XMLSchema-instance'];
+    
+                // if (trim($ns_xsi->identifier['type'] == "dnb:IDN")) {
+    
+                foreach ($ns_dc->identifier as $identifier) {
+                    if ($identifier->attributes("xsi", TRUE)->type == "dnb:IDN") {
+                        $idn = strval(strval($ns_dc->identifier));
+                    }
                 }
+    
             }
+    
+            global $output;
+    
+            // Prepared Output base
+            $output = "
+                {| class='wikitable'
+                !Titel
+                !Verfasser:in
+                !Datum
+                !Quelle
+                |-
+                ";
+    
+            // Collection of fetched publication IDNs to prevent doublettes, used as return value to pass it with every ref-data-fetch
+            $refIdns = array();
+    
+            // #2 Getting the auRef-Data by DNB-IDN
+            $refIdns = getDNBref("auRef", $idn, $refIdns);
+    
+            // #3 Getting the betRef-Data by DNB-IDN
+            $refIdns = getDNBref("betRef", $idn, $refIdns);
+    
+            // #4 Getting the swiRef-Data by DNB-IDN
+            $refIdns = getDNBref("swiRef", $idn, $refIdns);
+    
+            return $output;
 
+        } catch (Exception $e) {
+            return "wrong GND ID";
         }
 
-        global $output;
-
-        // Prepared Output base
-        $output = "
-            {| class='wikitable'
-            !Titel
-            !Verfasser:in
-            !Datum
-            !Quelle
-            |-
-            ";
-
-        // Collection of fetched publication IDNs to prevent doublettes, used as return value to pass it with every ref-data-fetch
-        $refIdns = array();
-
-        // #2 Getting the auRef-Data by DNB-IDN
-        $refIdns = getDNBref("auRef", $idn, $refIdns);
-
-        // #3 Getting the betRef-Data by DNB-IDN
-        $refIdns = getDNBref("betRef", $idn, $refIdns);
-
-        // #4 Getting the swiRef-Data by DNB-IDN
-        $refIdns = getDNBref("swiRef", $idn, $refIdns);
-
-        return $output;
     }
 
     // get bbf data by manually given on edit Wiki page
@@ -192,30 +206,36 @@ class GNDShowHooks
             $ns = $xmlRef->getNamespaces(true);
    
             $refResult = "";
+            try {
 
-            $metadata = $xmlRef->GetRecord->record->metadata;
-            $ns_oaidc = $metadata->children($ns['oai_dc']);
-            $oaidc = $ns_oaidc->dc;
-            $ns_dc = $oaidc->children($ns['dc']);
+                $metadata = $xmlRef->GetRecord->record->metadata;
+                $ns_oaidc = $metadata->children($ns['oai_dc']);
+                $oaidc = $ns_oaidc->dc;
+                $ns_dc = $oaidc->children($ns['dc']);
 
-            $record_title = strval($ns_dc->title);            
-            $record_date = strval($ns_dc->date);
-            $record_desc = strval($ns_dc->source);
-            $record_url = strval($ns_dc->identifier);
+                $record_title = strval($ns_dc->title);            
+                $record_date = strval($ns_dc->date);
+                $record_desc = strval($ns_dc->source);
+                $record_url = strval($ns_dc->identifier);
 
-            $record_desc = "'". $record_desc . "'";
+                $record_desc = "'". $record_desc . "'";
 
-            $refResult = $refResult . "
-                    |$record_title
-                    |$record_date
-                    |$record_url
-                    |$record_desc
-                    |-
-                ";
+                $refResult = $refResult . "
+                        |$record_title
+                        |$record_date
+                        |$record_url
+                        |$record_desc
+                        |-
+                    ";
 
-            $GLOBALS["bbfOutput"] = $GLOBALS["bbfOutput"] . $refResult;
+                $GLOBALS["bbfOutput"] = $GLOBALS["bbfOutput"] . $refResult;
 
-            return $bbfRefIdns;
+                return $bbfRefIdns;
+
+            } catch (Exception $e) {
+                return "wrong BBF URN";
+            }
+            
         }
 
         global $bbfOutput;
