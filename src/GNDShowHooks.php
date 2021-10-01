@@ -26,50 +26,42 @@ class GNDShowHooks
 
             $refResult = "";
             
-            try {
-                if (empty($xmlRef->records->record->recordData)) {
-                    throw new Exception('not defined');
-                } else {
 
-                    foreach ($xmlRef->records->record as $record) {
+            foreach ($xmlRef->records->record as $record) {
 
-                        $ns_dc = $record->recordData->dc->children($ns['dc']);
-        
-                        $record_title = strval($ns_dc->title);
-                        $record_creator = strval($ns_dc->creator);
-                        $record_date = strval($ns_dc->date);
-        
-                        foreach ($ns_dc->identifier as $identifier) {
-                            if ($identifier->attributes("xsi", TRUE)->type == "dnb:IDN") {
-                                $record_idn = strval(strval($ns_dc->identifier));
-                            }
-                        }
-        
-                        $record_url = "http://d-nb.info/" . $record_idn;
-        
-                        // check on doublettes - if not, catch this object
-                        if (in_array($record_idn, $refIdns) !== true) {
-        
-                            array_push($refIdns, $record_idn);
-        
-                            $refResult = $refResult . "
-                                    |$record_title
-                                    |$record_creator
-                                    |$record_date
-                                    |$record_url
-                                    |-
-                                ";
-                        }
+                $ns_dc = $record->recordData->dc->children($ns['dc']);
+
+                $record_title = strval($ns_dc->title);
+                $record_creator = strval($ns_dc->creator);
+                $record_date = strval($ns_dc->date);
+
+                foreach ($ns_dc->identifier as $identifier) {
+                    if ($identifier->attributes("xsi", TRUE)->type == "dnb:IDN") {
+                        $record_idn = strval(strval($ns_dc->identifier));
                     }
-        
-                    $GLOBALS["output"] = $GLOBALS["output"] . $refResult;
-        
-                    return $refIdns;
+                }
+
+                $record_url = "http://d-nb.info/" . $record_idn;
+
+                // check on doublettes - if not, catch this object
+                if (in_array($record_idn, $refIdns) !== true) {
+
+                    array_push($refIdns, $record_idn);
+
+                    $refResult = $refResult . "
+                            |$record_title
+                            |$record_creator
+                            |$record_date
+                            |$record_url
+                            |-
+                        ";
                 }
             }
-            catch (Exception $e) {
-                return "wrong DNB IDN";
-            }            
+
+            $GLOBALS["output"] = $GLOBALS["output"] . $refResult;
+
+            return $refIdns;
+                      
         }
 
         //Param1 represents the wikidata-id
@@ -241,6 +233,7 @@ class GNDShowHooks
                     return $bbfRefIdns;
                 }
             } catch (Exception $e) {
+                $GLOBALS["bbfOutput"] = "wrong BBF URN";
                 return "wrong BBF URN";
             }
             
