@@ -67,7 +67,7 @@ class GNDShowHooks
         //Param1 represents the wikidata-id
 
         global $wgScriptPath;
-        global $wgDockerServer;
+        global $wgServer;
 
         $gnd = "";
 
@@ -84,7 +84,7 @@ class GNDShowHooks
             // get wikidatalink from actual page
             if (empty($param2)) { // if param2 is not set, take the wikidatalink from the actual page
 
-                $endpoint = "$wgDockerServer$wgScriptPath/api.php";
+                $endpoint = "$wgServer$wgScriptPath/api.php";
                 $url = "$endpoint?action=ask&query=[[$titleunderscores]]|?Wikidata_ID|limit=5&format=json";
                 $json_data = file_get_contents($url);
                 $apiresponse = json_decode($json_data, true);
