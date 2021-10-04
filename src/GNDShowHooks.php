@@ -25,6 +25,7 @@ class GNDShowHooks
             $ns = $xmlRef->getNamespaces(true);
 
             $refResult = "";
+            
 
             foreach ($xmlRef->records->record as $record) {
 
@@ -60,12 +61,13 @@ class GNDShowHooks
             $GLOBALS["output"] = $GLOBALS["output"] . $refResult;
 
             return $refIdns;
+                      
         }
 
         //Param1 represents the wikidata-id
 
         global $wgScriptPath;
-        global $wgDockerServer;
+        global $wgServer;
 
         $gnd = "";
 
@@ -82,7 +84,7 @@ class GNDShowHooks
             // get wikidatalink from actual page
             if (empty($param2)) { // if param2 is not set, take the wikidatalink from the actual page
 
-                $endpoint = "$wgDockerServer$wgScriptPath/api.php";
+                $endpoint = "$wgServer$wgScriptPath/api.php";
                 $url = "$endpoint?action=ask&query=[[$titleunderscores]]|?Wikidata_ID|limit=5&format=json";
                 $json_data = file_get_contents($url);
                 $apiresponse = json_decode($json_data, true);
@@ -127,53 +129,56 @@ class GNDShowHooks
 
         $xml_idn = simplexml_load_file($url_idn) or die("Can't connect to URL");
 
-        // get DNB-IDN in MARC21-xml: separate controlfield with tag="001"
-
         $ns = $xml_idn->getNamespaces(true);
 
-        // get DNB-IDN in oai_dc: separate dc:identifier with xsi:type="dnb:IDN"
+        try {
+            if (empty($xml_idn->records->record->recordData->dc)) {
+                throw new Exception('not defined');
+            } else {
+                foreach ($xml_idn->records->record->recordData->dc as $record) {
 
-        foreach ($xml_idn->records->record->recordData->dc as $record) {
+                    // get DNB-IDN in oai_dc: separate dc:identifier with xsi:type="dnb:IDN"
 
-            $ns_dc = $record->children($ns['dc']);
-
-            // $ns_xsi = $ns_dc->children['http://www.w3.org/2001/XMLSchema-instance'];
-
-            // if (trim($ns_xsi->identifier['type'] == "dnb:IDN")) {
-
-            foreach ($ns_dc->identifier as $identifier) {
-                if ($identifier->attributes("xsi", TRUE)->type == "dnb:IDN") {
-                    $idn = strval(strval($ns_dc->identifier));
+                    $ns_dc = $record->children($ns['dc']);
+        
+                    foreach ($ns_dc->identifier as $identifier) {
+                        if ($identifier->attributes("xsi", TRUE)->type == "dnb:IDN") {
+                            $idn = strval(strval($ns_dc->identifier));
+                        }
+                    }
+        
                 }
+        
+                global $output;
+        
+                // Prepared Output base
+                $output = "
+                    {| class='wikitable'
+                    !Titel
+                    !Verfasser:in
+                    !Datum
+                    !Quelle
+                    |-
+                    ";
+        
+                // Collection of fetched publication IDNs to prevent doublettes, used as return value to pass it with every ref-data-fetch
+                $refIdns = array();
+        
+                // #2 Getting the auRef-Data by DNB-IDN
+                $refIdns = getDNBref("auRef", $idn, $refIdns);
+        
+                // #3 Getting the betRef-Data by DNB-IDN
+                $refIdns = getDNBref("betRef", $idn, $refIdns);
+        
+                // #4 Getting the swiRef-Data by DNB-IDN
+                $refIdns = getDNBref("swiRef", $idn, $refIdns);
+        
+                return $output;
             }
-
+        } catch (Exception $e) {
+            return "wrong GND ID";
         }
 
-        global $output;
-
-        // Prepared Output base
-        $output = "
-            {| class='wikitable'
-            !Titel
-            !Verfasser:in
-            !Datum
-            !Quelle
-            |-
-            ";
-
-        // Collection of fetched publication IDNs to prevent doublettes, used as return value to pass it with every ref-data-fetch
-        $refIdns = array();
-
-        // #2 Getting the auRef-Data by DNB-IDN
-        $refIdns = getDNBref("auRef", $idn, $refIdns);
-
-        // #3 Getting the betRef-Data by DNB-IDN
-        $refIdns = getDNBref("betRef", $idn, $refIdns);
-
-        // #4 Getting the swiRef-Data by DNB-IDN
-        $refIdns = getDNBref("swiRef", $idn, $refIdns);
-
-        return $output;
     }
 
     // get bbf data by manually given on edit Wiki page
@@ -192,30 +197,40 @@ class GNDShowHooks
             $ns = $xmlRef->getNamespaces(true);
    
             $refResult = "";
+            try {
+                if (empty($xmlRef->GetRecord->record->metadata)) {
+                    throw new Exception('not defined');
+                } else {
 
-            $metadata = $xmlRef->GetRecord->record->metadata;
-            $ns_oaidc = $metadata->children($ns['oai_dc']);
-            $oaidc = $ns_oaidc->dc;
-            $ns_dc = $oaidc->children($ns['dc']);
+                    $metadata = $xmlRef->GetRecord->record->metadata;
+                    $ns_oaidc = $metadata->children($ns['oai_dc']);
+                    $oaidc = $ns_oaidc->dc;
+                    $ns_dc = $oaidc->children($ns['dc']);
 
-            $record_title = strval($ns_dc->title);            
-            $record_date = strval($ns_dc->date);
-            $record_desc = strval($ns_dc->source);
-            $record_url = strval($ns_dc->identifier);
+                    $record_title = strval($ns_dc->title);            
+                    $record_date = strval($ns_dc->date);
+                    $record_desc = strval($ns_dc->source);
+                    $record_url = strval($ns_dc->identifier);
 
-            $record_desc = "'". $record_desc . "'";
+                    $record_desc = "'". $record_desc . "'";
 
-            $refResult = $refResult . "
-                    |$record_title
-                    |$record_date
-                    |$record_url
-                    |$record_desc
-                    |-
-                ";
+                    $refResult = $refResult . "
+                            |$record_title
+                            |$record_date
+                            |$record_url
+                            |$record_desc
+                            |-
+                        ";
 
-            $GLOBALS["bbfOutput"] = $GLOBALS["bbfOutput"] . $refResult;
+                    $GLOBALS["bbfOutput"] = $GLOBALS["bbfOutput"] . $refResult;
 
-            return $bbfRefIdns;
+                    return $bbfRefIdns;
+                }
+            } catch (Exception $e) {
+                $GLOBALS["bbfOutput"] = "wrong BBF URN";
+                return $e->getMessage();
+            }
+            
         }
 
         global $bbfOutput;
@@ -232,31 +247,42 @@ class GNDShowHooks
 
         // Collection of fetched publication BBF-Object-URNs to prevent doublettes, used as return value to pass it with every ref-data-fetch
         $bbfRefIdns = array();
+        
+        // check if $param1 is not empty
+        if (empty($param1) !== true) {
+        
+            // check if multiple URNs been given
+            if (strpos($param1, ",")) {
 
-        // check if multiple URNs been given
-        if (strpos($param1, ",")) {
+                // split up the URNs by comma
+                $bbfarray = explode(",", $param1);   
 
-            // split up the URNs by comma
-            $bbfarray = explode(",", $param1);   
+                // get data by multiple given URNs
+                foreach ($bbfarray as $urn) {
 
-            // get data by multiple given URNs
-            foreach ($bbfarray as $urn) {
-                
-                // check on doublettes
-                if (in_array($urn, $bbfRefIdns) !== true ) {
+                    // check if single URN is not empty
+                    if (empty($urn) !== true) {
+                    
+                        // check on doublettes
+                        if (in_array($urn, $bbfRefIdns) !== true ) {
+                            array_push($bbfRefIdns, $urn);
 
-                    array_push($bbfRefIdns, $urn);
-
-                    getBbfRef($urn, $bbfRefIdns);
+                            getBbfRef($urn, $bbfRefIdns);
+                        }
+                    }
                 }
             }
-        }
-        // get data by single given URN
-        else {
-            getBbfRef($param1, $bbfRefIdns);
-        }
+        
+            else {
+                // get data by single given URN
+                getBbfRef($param1, $bbfRefIdns);
+            }
 
-        return $bbfOutput;
+            return $bbfOutput;
+        }
+        else { // if $param1 is empty
+            return "no BBF URN given";
+        }
     }
 
     public static function getData($properties = '', $pvalue = '')
