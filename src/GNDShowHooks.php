@@ -129,11 +129,7 @@ class GNDShowHooks
 
         $xml_idn = simplexml_load_file($url_idn) or die("Can't connect to URL");
 
-        // get DNB-IDN in MARC21-xml: separate controlfield with tag="001"
-
         $ns = $xml_idn->getNamespaces(true);
-
-        // get DNB-IDN in oai_dc: separate dc:identifier with xsi:type="dnb:IDN"
 
         try {
             if (empty($xml_idn->records->record->recordData->dc)) {
@@ -141,11 +137,9 @@ class GNDShowHooks
             } else {
                 foreach ($xml_idn->records->record->recordData->dc as $record) {
 
+                    // get DNB-IDN in oai_dc: separate dc:identifier with xsi:type="dnb:IDN"
+
                     $ns_dc = $record->children($ns['dc']);
-        
-                    // $ns_xsi = $ns_dc->children['http://www.w3.org/2001/XMLSchema-instance'];
-        
-                    // if (trim($ns_xsi->identifier['type'] == "dnb:IDN")) {
         
                     foreach ($ns_dc->identifier as $identifier) {
                         if ($identifier->attributes("xsi", TRUE)->type == "dnb:IDN") {
@@ -253,31 +247,42 @@ class GNDShowHooks
 
         // Collection of fetched publication BBF-Object-URNs to prevent doublettes, used as return value to pass it with every ref-data-fetch
         $bbfRefIdns = array();
+        
+        // check if $param1 is not empty
+        if (empty($param1) !== true) {
+        
+            // check if multiple URNs been given
+            if (strpos($param1, ",")) {
 
-        // check if multiple URNs been given
-        if (strpos($param1, ",")) {
+                // split up the URNs by comma
+                $bbfarray = explode(",", $param1);   
 
-            // split up the URNs by comma
-            $bbfarray = explode(",", $param1);   
+                // get data by multiple given URNs
+                foreach ($bbfarray as $urn) {
 
-            // get data by multiple given URNs
-            foreach ($bbfarray as $urn) {
-                
-                // check on doublettes
-                if (in_array($urn, $bbfRefIdns) !== true ) {
+                    // check if single URN is not empty
+                    if (empty($urn) !== true) {
+                    
+                        // check on doublettes
+                        if (in_array($urn, $bbfRefIdns) !== true ) {
+                            array_push($bbfRefIdns, $urn);
 
-                    array_push($bbfRefIdns, $urn);
-
-                    getBbfRef($urn, $bbfRefIdns);
+                            getBbfRef($urn, $bbfRefIdns);
+                        }
+                    }
                 }
             }
-        }
-        // get data by single given URN
-        else {
-            getBbfRef($param1, $bbfRefIdns);
-        }
+        
+            else {
+                // get data by single given URN
+                getBbfRef($param1, $bbfRefIdns);
+            }
 
-        return $bbfOutput;
+            return $bbfOutput;
+        }
+        else { // if $param1 is empty
+            return "no BBF URN given";
+        }
     }
 
     public static function getData($properties = '', $pvalue = '')
