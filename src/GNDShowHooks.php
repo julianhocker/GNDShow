@@ -11,59 +11,61 @@ class GNDShowHooks
         $parser->setFunctionHook('gndshow', [self::class, 'gndshowlite']);
         $parser->setFunctionHook('bbfshow', [self::class, 'bbfshowlite']);
     }
-
+    
     public static function gndshowlite(Parser $parser, $param1 = '', $param2 = '')
     {
         // function for repeating publication fetch and data processing
-        function getDNBref($refKey, $idn, $refIdns)
-        {
+        // first avoid redeclaring if multiple magic words given
+        if(!function_exists('getDNBref')){
+            function getDNBref($refKey, $idn, $refIdns)
+            {
 
-            $urlRef = "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=$refKey%3D$idn&recordSchema=oai_dc&maximumRecords=100";
+                $urlRef = "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=$refKey%3D$idn&recordSchema=oai_dc&maximumRecords=100";
 
-            $xmlRef = simplexml_load_file($urlRef) or die("Can't connect to URL");
+                $xmlRef = simplexml_load_file($urlRef) or die("Can't connect to URL");
 
-            $ns = $xmlRef->getNamespaces(true);
+                $ns = $xmlRef->getNamespaces(true);
 
-            $refResult = "";
-            
+                $refResult = "";
+                
 
-            foreach ($xmlRef->records->record as $record) {
+                foreach ($xmlRef->records->record as $record) {
 
-                $ns_dc = $record->recordData->dc->children($ns['dc']);
+                    $ns_dc = $record->recordData->dc->children($ns['dc']);
 
-                $record_title = strval($ns_dc->title);
-                $record_creator = strval($ns_dc->creator);
-                $record_date = strval($ns_dc->date);
+                    $record_title = strval($ns_dc->title);
+                    $record_creator = strval($ns_dc->creator);
+                    $record_date = strval($ns_dc->date);
 
-                foreach ($ns_dc->identifier as $identifier) {
-                    if ($identifier->attributes("xsi", TRUE)->type == "dnb:IDN") {
-                        $record_idn = strval(strval($ns_dc->identifier));
+                    foreach ($ns_dc->identifier as $identifier) {
+                        if ($identifier->attributes("xsi", TRUE)->type == "dnb:IDN") {
+                            $record_idn = strval(strval($ns_dc->identifier));
+                        }
+                    }
+
+                    $record_url = "http://d-nb.info/" . $record_idn;
+
+                    // check on doublettes - if not, catch this object
+                    if (in_array($record_idn, $refIdns) !== true) {
+
+                        array_push($refIdns, $record_idn);
+
+                        $refResult = $refResult . "
+                                |$record_title
+                                |$record_creator
+                                |$record_date
+                                |$record_url
+                                |-
+                            ";
                     }
                 }
 
-                $record_url = "http://d-nb.info/" . $record_idn;
+                $GLOBALS["output"] = $GLOBALS["output"] . $refResult;
 
-                // check on doublettes - if not, catch this object
-                if (in_array($record_idn, $refIdns) !== true) {
-
-                    array_push($refIdns, $record_idn);
-
-                    $refResult = $refResult . "
-                            |$record_title
-                            |$record_creator
-                            |$record_date
-                            |$record_url
-                            |-
-                        ";
-                }
+                return $refIdns;
+                        
             }
-
-            $GLOBALS["output"] = $GLOBALS["output"] . $refResult;
-
-            return $refIdns;
-                      
-        }
-
+        }   
         //Param1 represents the wikidata-id
 
         global $wgScriptPath;
@@ -186,53 +188,54 @@ class GNDShowHooks
     {
 
         // function to get bbf object data
-
+        // first avoid redeclaring if multiple magic words given
+        if(!function_exists('getBbfRef')){
         function getBbfRef($urn, $bbfRefIdns)
-        {
-            $bbfURL = "https://scripta.bbf.dipf.de/viewer/oai?verb=GetRecord&metadataPrefix=oai_dc&identifier=$urn";
+            {
+                $bbfURL = "https://scripta.bbf.dipf.de/viewer/oai?verb=GetRecord&metadataPrefix=oai_dc&identifier=$urn";
 
-            $xmlRef = @simplexml_load_file($bbfURL) or die("Can't connect to URL");
+                $xmlRef = @simplexml_load_file($bbfURL) or die("Can't connect to URL");
 
-            // Namespaces: $ns for own use, register mets to XPath
-            $ns = $xmlRef->getNamespaces(true);
-   
-            $refResult = "";
-            try {
-                if (empty($xmlRef->GetRecord->record->metadata)) {
-                    throw new Exception('not defined');
-                } else {
+                // Namespaces: $ns for own use, register mets to XPath
+                $ns = $xmlRef->getNamespaces(true);
+    
+                $refResult = "";
+                try {
+                    if (empty($xmlRef->GetRecord->record->metadata)) {
+                        throw new Exception('not defined');
+                    } else {
 
-                    $metadata = $xmlRef->GetRecord->record->metadata;
-                    $ns_oaidc = $metadata->children($ns['oai_dc']);
-                    $oaidc = $ns_oaidc->dc;
-                    $ns_dc = $oaidc->children($ns['dc']);
+                        $metadata = $xmlRef->GetRecord->record->metadata;
+                        $ns_oaidc = $metadata->children($ns['oai_dc']);
+                        $oaidc = $ns_oaidc->dc;
+                        $ns_dc = $oaidc->children($ns['dc']);
 
-                    $record_title = strval($ns_dc->title);            
-                    $record_date = strval($ns_dc->date);
-                    $record_desc = strval($ns_dc->source);
-                    $record_url = strval($ns_dc->identifier);
+                        $record_title = strval($ns_dc->title);            
+                        $record_date = strval($ns_dc->date);
+                        $record_desc = strval($ns_dc->source);
+                        $record_url = strval($ns_dc->identifier);
 
-                    $record_desc = "'". $record_desc . "'";
+                        $record_desc = "'". $record_desc . "'";
 
-                    $refResult = $refResult . "
-                            |$record_title
-                            |$record_date
-                            |$record_url
-                            |$record_desc
-                            |-
-                        ";
+                        $refResult = $refResult . "
+                                |$record_title
+                                |$record_date
+                                |$record_url
+                                |$record_desc
+                                |-
+                            ";
 
-                    $GLOBALS["bbfOutput"] = $GLOBALS["bbfOutput"] . $refResult;
+                        $GLOBALS["bbfOutput"] = $GLOBALS["bbfOutput"] . $refResult;
 
-                    return $bbfRefIdns;
+                        return $bbfRefIdns;
+                    }
+                } catch (Exception $e) {
+                    $GLOBALS["bbfOutput"] = "wrong BBF URN";
+                    return $e->getMessage();
                 }
-            } catch (Exception $e) {
-                $GLOBALS["bbfOutput"] = "wrong BBF URN";
-                return $e->getMessage();
+                
             }
-            
         }
-
         global $bbfOutput;
 
         // Prepared Output base
