@@ -155,7 +155,7 @@ class GNDShowHooks
         
                 // Prepared Output base
                 $output = "
-                    {| class='wikitable'
+                    {| class='wikitable sortable'
                     !Titel
                     !Verfasser:in
                     !Datum
@@ -240,7 +240,7 @@ class GNDShowHooks
 
         // Prepared Output base
         $bbfOutput = "
-            {| class='wikitable'
+            {| class='wikitable sortable'
             !Titel
             !Datum
             !Quelle
